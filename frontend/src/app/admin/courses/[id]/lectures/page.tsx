@@ -336,7 +336,12 @@ export default function AdminLectureManagementPage() {
 
       {/* Quick Video Preview Modal */}
       {previewVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPreviewVideo(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"
+        >
           <div className="relative w-full max-w-3xl rounded-2xl bg-slate-900 p-4 shadow-2xl border border-slate-800">
             <div className="flex items-center justify-between pb-3">
               <h3 className="text-sm font-bold text-white truncate max-w-md">

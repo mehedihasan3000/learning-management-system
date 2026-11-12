@@ -18,10 +18,11 @@ export function formatEmbedUrl(url: string): string {
     return cleanUrl;
   }
 
-  // Handle youtube.com/watch?v=ID
-  const youtubeWatchMatch = cleanUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-  if (youtubeWatchMatch && youtubeWatchMatch[1]) {
-    return `https://www.youtube.com/embed/${youtubeWatchMatch[1]}?autoplay=0&rel=0`;
+  // Handle standard YouTube URLs: watch?v=ID, youtu.be/ID, youtube.com/shorts/ID
+  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const match = cleanUrl.match(youtubeRegex);
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}?autoplay=0&rel=0&modestbranding=1`;
   }
 
   // Handle Vimeo
@@ -38,26 +39,30 @@ export default function VideoPlayer({ url, title }: VideoPlayerProps) {
 
   if (!url) {
     return (
-      <div className="w-full aspect-video rounded-2xl bg-slate-900 flex flex-col items-center justify-center text-slate-400 p-6 border border-slate-800">
-        <Video className="h-12 w-12 text-slate-600 mb-3" />
-        <p className="text-base font-medium text-slate-300">No lecture video selected</p>
-        <p className="text-xs text-slate-500 mt-1">Select a lecture from the curriculum to begin</p>
+      <div className="w-full aspect-video rounded-2xl bg-slate-900 flex flex-col items-center justify-center text-slate-400 p-6 border border-slate-800 shadow-lg">
+        <div className="h-14 w-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mb-3 border border-slate-700">
+          <Video className="h-7 w-7" />
+        </div>
+        <p className="text-base font-semibold text-slate-200">No lecture video selected</p>
+        <p className="text-xs text-slate-400 mt-1 text-center max-w-xs">
+          Select any lecture from the curriculum playlist to start streaming.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl bg-black shadow-xl ring-1 ring-slate-900/10">
+    <div className="w-full overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-slate-900/10">
       <div className="relative w-full aspect-video">
         <iframe
           src={embedUrl}
-          title={title || 'Lecture Video'}
+          title={title || 'Lecture Video Player'}
           className="absolute inset-0 h-full w-full border-0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
+          loading="lazy"
         />
       </div>
     </div>
   );
 }
-

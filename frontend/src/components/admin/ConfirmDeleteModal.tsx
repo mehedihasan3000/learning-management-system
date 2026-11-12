@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TrashBin, Xmark } from '@gravity-ui/icons';
 
 interface ConfirmDeleteModalProps {
@@ -20,10 +20,25 @@ export default function ConfirmDeleteModal({
   message,
   isDeleting = false,
 }: ConfirmDeleteModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && !isDeleting) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isDeleting, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isDeleting) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
@@ -37,6 +52,7 @@ export default function ConfirmDeleteModal({
           </div>
           <button
             onClick={onClose}
+            disabled={isDeleting}
             className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <Xmark className="h-5 w-5" />
@@ -76,4 +92,3 @@ export default function ConfirmDeleteModal({
     </div>
   );
 }
-

@@ -128,8 +128,8 @@ export default function AdminDashboardPage() {
 
   const filteredCourses = courses.filter(
     (c) =>
-      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (c.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.description || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalLectures = courses.reduce(
