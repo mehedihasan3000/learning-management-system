@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 import { Course } from '../models/Course';
 import { Lecture } from '../models/Lecture';
+import { Admin } from '../models/Admin';
 
 dotenv.config();
 
@@ -128,6 +130,20 @@ async function seedDatabase() {
 
     await Course.deleteMany({});
     await Lecture.deleteMany({});
+    await Admin.deleteMany({});
+
+    // Seed default administrator into MongoDB
+    console.log('[Seed] Seeding administrator in MongoDB...');
+    const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@lms.local').toLowerCase().trim();
+    const admin = await Admin.create({
+      email: adminEmail,
+      name: 'System Administrator',
+      passwordHash,
+      role: 'admin',
+    });
+    console.log(`[Seed] Created Admin in MongoDB: "${admin.email}" (ID: ${admin._id})`);
 
     for (const courseData of sampleCourses) {
       const { lectures, ...courseInfo } = courseData;

@@ -2,51 +2,47 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdminUser } from '@/types';
-import {
-  getAuthToken,
-  setAuthToken,
-  removeAuthToken,
-  getStoredAdminUser,
-  setStoredAdminUser,
-  loginAdminApi,
-} from '@/lib/api';
+import { loginAdminApi, getAdminSessionApi, logoutAdminApi } from '@/lib/api';
 
 interface AuthContextType {
   user: AdminUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  checkSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check saved credentials
-    const savedToken = getAuthToken();
-    const savedUser = getStoredAdminUser();
-
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(savedUser);
+  const checkSession = async () => {
+    try {
+      const res = await getAdminSessionApi();
+      if (res.success && res.data?.admin) {
+        setUser(res.data.admin);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    checkSession();
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
       const res = await loginAdminApi(email, password);
-      if (res.success && res.data) {
-        setToken(res.data.token);
+      if (res.success && res.data?.admin) {
         setUser(res.data.admin);
-        setAuthToken(res.data.token);
-        setStoredAdminUser(res.data.admin);
         return { success: true };
       }
       return { success: false, message: res.message || 'Login failed' };
@@ -55,21 +51,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    removeAuthToken();
+  const logout = async () => {
+    try {
+      await logoutAdminApi();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!token,
+        isAuthenticated: !!user,
         isLoading,
         login,
         logout,
+        checkSession,
       }}
     >
       {children}
@@ -84,4 +84,3 @@ export function useAuth() {
   }
   return context;
 }
-

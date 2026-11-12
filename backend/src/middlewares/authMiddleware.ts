@@ -6,6 +6,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email?: string;
     role?: string;
+    name?: string;
     [key: string]: any;
   };
 }
@@ -16,21 +17,22 @@ export const authenticateAdmin = (
   next: NextFunction
 ): void => {
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
-        success: false,
-        message: 'Access denied. No authentication token provided.',
-      });
-      return;
+    // 1. Check HttpOnly cookie first
+    if (req.cookies && req.cookies.lms_admin_token) {
+      token = req.cookies.lms_admin_token;
     }
 
-    const token = authHeader.split(' ')[1];
+    // 2. Fall back to Authorization header (Bearer token)
+    if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
     if (!token) {
       res.status(401).json({
         success: false,
-        message: 'Malformed authorization header.',
+        message: 'Access denied. No authentication session or token provided.',
       });
       return;
     }
@@ -46,9 +48,8 @@ export const authenticateAdmin = (
   } catch (error: any) {
     res.status(401).json({
       success: false,
-      message: 'Invalid or expired authentication token. Please log in again.',
+      message: 'Invalid or expired authentication session. Please log in again.',
       error: error.message,
     });
   }
 };
-

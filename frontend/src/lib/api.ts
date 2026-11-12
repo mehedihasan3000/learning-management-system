@@ -1,58 +1,21 @@
-import { Course, Lecture, ApiResponse } from '@/types';
+import { Course, Lecture, AdminUser, ApiResponse } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-export const getAuthToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('lms_admin_token');
-};
-
-export const setAuthToken = (token: string): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('lms_admin_token', token);
-  }
-};
-
-export const removeAuthToken = (): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('lms_admin_token');
-    localStorage.removeItem('lms_admin_user');
-  }
-};
-
-export const getStoredAdminUser = (): any | null => {
-  if (typeof window === 'undefined') return null;
-  const raw = localStorage.getItem('lms_admin_user');
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-};
-
-export const setStoredAdminUser = (user: any): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('lms_admin_user', JSON.stringify(user));
-  }
-};
-
+/**
+ * Universal API request wrapper.
+ * Always includes credentials: 'include' so secure HttpOnly session cookies
+ * are automatically sent with all requests, completely removing the need
+ * for storing sensitive JWT tokens in browser localStorage.
+ */
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {},
-  requiresAuth: boolean = false
+  options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
-
-  if (requiresAuth) {
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
 
   const url = `${API_BASE}${endpoint}`;
 
@@ -60,6 +23,7 @@ async function apiRequest<T>(
     const res = await fetch(url, {
       ...options,
       headers,
+      credentials: 'include',
     });
 
     const data = await res.json();
@@ -81,7 +45,10 @@ async function apiRequest<T>(
   }
 }
 
-// Course APIs
+// ==========================================
+// Course APIs (100% Real MongoDB Data)
+// ==========================================
+
 export async function getCourses(): Promise<ApiResponse<Course[]>> {
   return apiRequest<Course[]>('/courses');
 }
@@ -96,14 +63,10 @@ export async function createCourse(data: {
   price: number;
   thumbnail: string;
 }): Promise<ApiResponse<Course>> {
-  return apiRequest<Course>(
-    '/courses',
-    {
-      method: 'POST',
-      body: JSON.stringify(data),
-    },
-    true
-  );
+  return apiRequest<Course>('/courses', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateCourse(
@@ -115,27 +78,22 @@ export async function updateCourse(
     thumbnail: string;
   }>
 ): Promise<ApiResponse<Course>> {
-  return apiRequest<Course>(
-    `/courses/${id}`,
-    {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    },
-    true
-  );
+  return apiRequest<Course>(`/courses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteCourse(id: string): Promise<ApiResponse<{ message: string }>> {
-  return apiRequest<{ message: string }>(
-    `/courses/${id}`,
-    {
-      method: 'DELETE',
-    },
-    true
-  );
+  return apiRequest<{ message: string }>(`/courses/${id}`, {
+    method: 'DELETE',
+  });
 }
 
-// Lecture APIs
+// ==========================================
+// Lecture APIs (100% Real MongoDB Data)
+// ==========================================
+
 export async function getLecturesByCourse(courseId: string): Promise<ApiResponse<Lecture[]>> {
   return apiRequest<Lecture[]>(`/courses/${courseId}/lectures`);
 }
@@ -154,14 +112,10 @@ export async function createLecture(
     duration?: string;
   }
 ): Promise<ApiResponse<Lecture>> {
-  return apiRequest<Lecture>(
-    `/courses/${courseId}/lectures`,
-    {
-      method: 'POST',
-      body: JSON.stringify(data),
-    },
-    true
-  );
+  return apiRequest<Lecture>(`/courses/${courseId}/lectures`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateLecture(
@@ -174,47 +128,40 @@ export async function updateLecture(
     duration: string;
   }>
 ): Promise<ApiResponse<Lecture>> {
-  return apiRequest<Lecture>(
-    `/lectures/${id}`,
-    {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    },
-    true
-  );
+  return apiRequest<Lecture>(`/lectures/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteLecture(id: string): Promise<ApiResponse<{ message: string }>> {
-  return apiRequest<{ message: string }>(
-    `/lectures/${id}`,
-    {
-      method: 'DELETE',
-    },
-    true
-  );
+  return apiRequest<{ message: string }>(`/lectures/${id}`, {
+    method: 'DELETE',
+  });
 }
 
-// Auth APIs
-export async function loginAdminApi(email: string, password: string): Promise<ApiResponse<{
-  token: string;
-  admin: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  };
-}>> {
-  return apiRequest<{
-    token: string;
-    admin: {
-      id: string;
-      email: string;
-      name: string;
-      role: string;
-    };
-  }>('/auth/login', {
+// ==========================================
+// Admin Auth APIs (HttpOnly Cookie Session)
+// ==========================================
+
+export async function loginAdminApi(
+  email: string,
+  password: string
+): Promise<ApiResponse<{ admin: AdminUser }>> {
+  return apiRequest<{ admin: AdminUser }>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
 }
 
+export async function getAdminSessionApi(): Promise<ApiResponse<{ admin: AdminUser }>> {
+  return apiRequest<{ admin: AdminUser }>('/auth/me', {
+    method: 'GET',
+  });
+}
+
+export async function logoutAdminApi(): Promise<ApiResponse<{ message: string }>> {
+  return apiRequest<{ message: string }>('/auth/logout', {
+    method: 'POST',
+  });
+}

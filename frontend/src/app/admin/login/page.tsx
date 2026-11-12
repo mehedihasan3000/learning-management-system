@@ -11,14 +11,17 @@ import {
   CircleCheck,
   ArrowLeft,
   ArrowRight,
+  Eye,
+  EyeSlash,
 } from '@gravity-ui/icons';
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useAuth();
 
-  const [email, setEmail] = useState('admin@lms.local');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,11 +48,6 @@ export default function AdminLoginPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleUseDemo = () => {
-    setEmail('admin@lms.local');
-    setPassword('admin123');
   };
 
   return (
@@ -98,7 +96,7 @@ export default function AdminLoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@lms.local"
+                  placeholder="admin@example.com"
                   className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               </div>
@@ -113,31 +111,26 @@ export default function AdminLoginPage() {
                   <Lock className="h-4 w-4" />
                 </span>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  placeholder="Enter your password"
+                  className="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                >
+                  {showPassword ? (
+                    <EyeSlash className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-            </div>
-
-            {/* Quick Demo Autofill Banner */}
-            <div className="rounded-xl bg-slate-50 p-3 border border-slate-200 dark:bg-slate-800/60 dark:border-slate-700 flex items-center justify-between">
-              <div className="text-[11px] text-slate-600 dark:text-slate-300">
-                <span>Default: </span>
-                <code className="text-indigo-600 dark:text-indigo-400 font-mono">admin@lms.local</code>
-                <span className="mx-1">/</span>
-                <code className="text-indigo-600 dark:text-indigo-400 font-mono">admin123</code>
-              </div>
-              <button
-                type="button"
-                onClick={handleUseDemo}
-                className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 underline"
-              >
-                Auto-fill
-              </button>
             </div>
 
             <button
@@ -161,4 +154,3 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-
