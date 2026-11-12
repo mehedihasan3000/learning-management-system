@@ -3,33 +3,32 @@
 import React from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, Person, ArrowRight } from '@gravity-ui/icons';
+import { Lock, Person } from '@gravity-ui/icons';
 
-/** Desktop auth buttons — rendered only on the client (ssr: false) */
+/**
+ * Desktop auth controls — client-rendered (ssr: false) to prevent hydration divergence.
+ */
 export function NavbarAuthSection() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   if (isAuthenticated) {
     return (
-      <div className="flex items-center space-x-3 pl-3 border-l border-slate-200 dark:border-slate-800">
-        <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 flex items-center justify-center font-semibold text-xs border border-indigo-300 dark:border-indigo-700">
-            <Person className="h-4 w-4" />
-          </div>
-          <div className="text-left">
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              {user?.name || 'Administrator'}
-            </p>
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-              Admin Active
-            </p>
-          </div>
+      <div className="flex items-center gap-2">
+        {/* Compact Admin Identifier: Icon + "Admin" */}
+        <div className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <Person className="h-2.5 w-2.5" />
+          </span>
+          <span className="font-medium tracking-tight">Admin</span>
         </div>
+
+        {/* Minimal Sign Out action */}
         <button
-          onClick={logout}
-          className="text-xs px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition"
+          onClick={() => logout()}
+          title="Sign out of admin session"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
         >
-          Logout
+          <span>Sign out</span>
         </button>
       </div>
     );
@@ -38,30 +37,37 @@ export function NavbarAuthSection() {
   return (
     <Link
       href="/admin/login"
-      className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-400 transition shadow-sm"
+      className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-2xs transition-all hover:border-slate-300 hover:bg-slate-800 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-850 dark:hover:text-white"
     >
-      <Lock className="h-3.5 w-3.5" />
+      <Lock className="h-3 w-3 text-slate-400 dark:text-slate-500" />
       <span>Admin Login</span>
-      <ArrowRight className="h-3 w-3" />
     </Link>
   );
 }
 
-/** Mobile auth section — rendered only on the client (ssr: false) */
+/**
+ * Mobile drawer auth controls.
+ */
 export function MobileAuthSection({ onClose }: { onClose: () => void }) {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   if (isAuthenticated) {
     return (
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs text-slate-600 dark:text-slate-400">
-          Logged in as <b>{user?.email}</b>
-        </span>
+      <div className="flex items-center justify-between py-1">
+        <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <Person className="h-3 w-3" />
+          </span>
+          <span>Admin</span>
+        </div>
         <button
-          onClick={() => { logout(); onClose(); }}
-          className="text-xs text-rose-600 font-semibold"
+          onClick={() => {
+            logout();
+            onClose();
+          }}
+          className="rounded-md px-2.5 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
         >
-          Logout
+          Sign out
         </button>
       </div>
     );
@@ -71,11 +77,10 @@ export function MobileAuthSection({ onClose }: { onClose: () => void }) {
     <Link
       href="/admin/login"
       onClick={onClose}
-      className="flex items-center justify-center space-x-2 w-full py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+      className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-800 shadow-2xs transition hover:bg-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
     >
-      <Lock className="h-4 w-4" />
+      <Lock className="h-3.5 w-3.5 text-slate-400" />
       <span>Admin Login</span>
     </Link>
   );
 }
-
