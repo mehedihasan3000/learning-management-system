@@ -10,22 +10,23 @@ import authRoutes from './routes/authRoutes';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
-connectDB();
-
-const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:3000',
+// ---------------------------------------------------------------------------
+// CORS
+// ---------------------------------------------------------------------------
+const rawAllowedOrigins = [
+  process.env.CLIENT_URL || '',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-];
+].filter(Boolean);
 
-// Middleware
+// De-duplicate and handle comma-separated origins from env (useful for Vercel)
+const allowedOrigins = [...new Set(rawAllowedOrigins)];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      // Allow requests with no origin (mobile apps, curl, Vercel preview checks)
       if (!origin) return callback(null, true);
       if (
         allowedOrigins.includes(origin) ||
@@ -38,18 +39,44 @@ app.use(
     credentials: true,
   })
 );
+
+// ---------------------------------------------------------------------------
+// Core Middleware
+// ---------------------------------------------------------------------------
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request logger
-app.use((req: Request, res: Response, next: NextFunction) => {
+// ---------------------------------------------------------------------------
+// Serverless-compatible DB connection middleware
+// Ensures MongoDB is connected before any route handler runs.
+// Uses global connection caching so warm serverless containers reuse connections.
+// ---------------------------------------------------------------------------
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error: any) {
+    console.error('[Middleware] DB connection error:', error.message);
+    res.status(503).json({
+      success: false,
+      message: 'Service temporarily unavailable. Database connection failed.',
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Request Logger
+// ---------------------------------------------------------------------------
+app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Health check endpoint
-app.get('/api/health', (req: Request, res: Response) => {
+// ---------------------------------------------------------------------------
+// Health Check
+// ---------------------------------------------------------------------------
+app.get('/api/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'healthy',
     message: 'LMS Backend API is operational',
@@ -57,12 +84,16 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
+// ---------------------------------------------------------------------------
 // API Routes
+// ---------------------------------------------------------------------------
 app.use('/api/courses', courseRoutes);
 app.use('/api/lectures', lectureRoutes);
 app.use('/api/auth', authRoutes);
 
-// 404 handler
+// ---------------------------------------------------------------------------
+// 404 Handler
+// ---------------------------------------------------------------------------
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -70,8 +101,10 @@ app.use((req: Request, res: Response) => {
   });
 });
 
+// ---------------------------------------------------------------------------
 // Global Error Handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+// ---------------------------------------------------------------------------
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[Global Error Handler]', err);
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
@@ -81,12 +114,19 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`\n🚀 LMS Backend server running on: http://localhost:${PORT}`);
-  console.log(`📚 Public API: http://localhost:${PORT}/api/courses`);
-  console.log(`🔒 Admin Auth: http://localhost:${PORT}/api/auth/login\n`);
-});
+// ---------------------------------------------------------------------------
+// Local development server — Vercel ignores app.listen() at runtime
+// ---------------------------------------------------------------------------
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`\n🚀 LMS Backend server running on: http://localhost:${PORT}`);
+    console.log(`📚 Public API: http://localhost:${PORT}/api/courses`);
+    console.log(`🔒 Admin Auth: http://localhost:${PORT}/api/auth/login\n`);
+  });
+}
 
+// ---------------------------------------------------------------------------
+// Export the app — Vercel uses this as the serverless function entry point
+// ---------------------------------------------------------------------------
 export default app;
-
