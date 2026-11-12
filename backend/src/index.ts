@@ -14,27 +14,33 @@ const app = express();
 // ---------------------------------------------------------------------------
 // CORS
 // ---------------------------------------------------------------------------
-const rawAllowedOrigins = [
-  process.env.CLIENT_URL || '',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-].filter(Boolean);
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((s) => s.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 
-// De-duplicate and handle comma-separated origins from env (useful for Vercel)
-const allowedOrigins = [...new Set(rawAllowedOrigins)];
+const allowedOrigins = [
+  ...new Set([
+    ...configuredOrigins,
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ]),
+];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, Vercel preview checks)
+      // Allow requests with no origin (mobile apps, curl, Vercel preview health checks)
       if (!origin) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/+$/, '');
       if (
-        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes(normalizedOrigin) ||
         process.env.NODE_ENV !== 'production'
       ) {
         return callback(null, true);
       }
-      return callback(new Error('CORS request blocked by LMS server policy'));
+      console.warn(`[CORS] Blocked request from origin: "${origin}". Allowed:`, allowedOrigins);
+      return callback(new Error(`CORS request blocked by LMS server policy for origin: ${origin}`));
     },
     credentials: true,
   })

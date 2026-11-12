@@ -58,11 +58,15 @@ export const adminLogin = async (req: Request, res: Response): Promise<void> => 
       { expiresIn: '7d' }
     );
 
-    // Set secure HttpOnly cookie - invisible to client JavaScript, preventing XSS theft
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Set secure HttpOnly cookie - invisible to client JavaScript, preventing XSS theft.
+    // In production (cross-origin / different Vercel domains), sameSite MUST be 'none'
+    // with secure: true so browsers accept and send the cookie on cross-site requests.
     res.cookie('lms_admin_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
     });
 
@@ -132,10 +136,12 @@ export const getAdminSession = async (
 };
 
 export const adminLogout = async (_req: Request, res: Response): Promise<void> => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   res.clearCookie('lms_admin_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
   });
 
   res.status(200).json({
